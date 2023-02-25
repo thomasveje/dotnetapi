@@ -1,0 +1,24 @@
+{
+    "name": "@openiap/dotnetapi",
+    "version": "0.0.7",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "updateproto": "npm uninstall @openiap/proto && npm --save-dev i openiap/proto",
+        "generate": "mkdir -p src/proto && protoc -I=./proto -I./proto --grpc_opt=lite_client,no_server --csharp_out=./src/proto proto/base.proto proto/ace.proto proto/querys.proto proto/queues.proto proto/watch.proto proto/workitems.proto"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/openiap/pyapi.git"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/openiap/pyapi/issues"
+    },
+    "homepage": "https://github.com/openiap/pyapi#readme",
+    "devDependencies": {
+        "@openiap/proto": "github:openiap/proto"
+    }
+}
