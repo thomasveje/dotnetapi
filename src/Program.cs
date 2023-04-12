@@ -255,7 +255,7 @@ async Task AgentHandler() {
         }
 
     } else {
-        throw new Exception("packageid and girrope not set, one of them must be set");
+        throw new Exception("packageid and gitrepo not set, one of them must be set");
     }
     // start agent by running dotnet run
     var agent = new Process();
