@@ -111,6 +111,11 @@ public static class protowrap
                     Console.WriteLine("Got null response");
                 } else if (response.Command == null || response.Command == "") {
                     Console.WriteLine("Got response with no command");
+                } else if (client.Streams.ContainsKey(response.Rid) && (response.Command == "beginstream" || response.Command == "stream" || response.Command == "endstream")) {
+                    if(response.Command == "stream") {
+                        var s = response.Data.Unpack<Openiap.Stream>();
+                        client.Streams[response.Rid].Write(s.Data.ToByteArray());
+                    }
                 } else if (promises.ContainsKey(response.Rid)) {
                     if (response.Data.TypeUrl.Contains("ErrorResponse"))
                     {
@@ -249,5 +254,23 @@ public static class protowrap
         var result = await promises[id].Task;
         promises.Remove(id);
         return result;
+    }
+    public static async Task<Envelope> RPC(openiap client, string id, Envelope envelope)
+    {
+        envelope.Id = id;
+        promises.Add(id, new TaskCompletionSource<Envelope>(TaskCreationOptions.RunContinuationsAsynchronously));
+        await SendMessage(client, envelope);
+        var result = await promises[id].Task;
+        promises.Remove(id);
+        return result;
+    }
+    public static async Task _RPC(openiap client, string id, Envelope envelope)
+    {
+        envelope.Id = id;
+        promises.Add(id, new TaskCompletionSource<Envelope>(TaskCreationOptions.RunContinuationsAsynchronously));
+        await SendMessage(client, envelope);
+    }
+    public static void SetStream(openiap client, string rid, System.IO.Stream stream) {
+        client.Streams.Add(rid,stream);
     }
 }

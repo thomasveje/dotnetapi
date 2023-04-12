@@ -197,25 +197,71 @@ async Task ConsoleHandler() {
     } while (true);
 
 }
+async Task<openiap> QuickConnect() {
+    var apiurl = Environment.GetEnvironmentVariable("apiurl");
+    if(apiurl == null || apiurl == "") apiurl = Environment.GetEnvironmentVariable("grpcapiurl");
+    if(apiurl == null || apiurl == "") throw new ArgumentException("apiurl not set");
+    TaskCompletionSource<openiap> tcs = new TaskCompletionSource<openiap>();
+
+    openiap client = new openiap(apiurl);
+    client.OnConnected = () =>
+    {
+        Console.WriteLine("connected!");
+        return Task.CompletedTask;
+    };
+    client.OnSignedin = (user) =>
+    {
+        tcs.SetResult(client);
+        return Task.CompletedTask;
+    };
+    await protowrap.Connect(client);
+    await tcs.Task;
+    return client;
+}
+
 async Task AgentHandler() {
     var gitrepo = Environment.GetEnvironmentVariable("gitrepo");
-    if(gitrepo == null || gitrepo == "") {
-        Console.WriteLine("gitrepo environment variable not set");
-        return;
-    }
-    // clone git repository by calling git clone
-    if(!Directory.Exists("package")) {
-        var gitclone = new Process();
-        gitclone.StartInfo.FileName = "git";
-        gitclone.StartInfo.Arguments = "clone " + gitrepo + " package";
-        gitclone.Start();
-        gitclone.WaitForExit();
+    var packageid = Environment.GetEnvironmentVariable("packageid");
+    var WorkingDirectory = "package";
+    if(!string.IsNullOrEmpty(gitrepo)) {
+        if(!Directory.Exists("package")) {
+            var gitclone = new Process();
+            gitclone.StartInfo.FileName = "git";
+            gitclone.StartInfo.Arguments = "clone " + gitrepo + " package";
+            gitclone.Start();
+            gitclone.WaitForExit();
+        }
+    } else if(!string.IsNullOrEmpty(packageid)) {
+        var client = await QuickConnect();
+        var packages = await client.Query<dynamic>("agents", query:new {_type="package", _id=packageid});
+        dynamic p = null; string fileid = "";
+        foreach(dynamic res in packages) {
+            p = res;
+            fileid = res["fileid"];
+            Console.WriteLine(res["_type"] + " " + res["name"]);
+        }
+        if(p == null) throw new Exception("package " + packageid + " not found");
+        if(string.IsNullOrEmpty(fileid)) throw new Exception("package " + packageid + " has no fileid");
+
+        // if(packages.Length == 0) throw new Exception("package " + packageid + " not found");
+        // if(string.IsNullOrEmpty(packages[0].fileid)) throw new Exception("package " + packageid + " has no fileid");
+        var filename = await client.DownloadFile(fileid);
+        if(filename.EndsWith(".tgz")) {
+            TarExample.Tar.ExtractTarGz(filename, "package");
+            System.IO.File.Delete(filename);
+        }
+        if(System.IO.Directory.Exists(System.IO.Path.Join("package", "package"))) {
+            WorkingDirectory = System.IO.Path.Join("package", "package");
+        }
+
+    } else {
+        throw new Exception("packageid and girrope not set, one of them must be set");
     }
     // start agent by running dotnet run
     var agent = new Process();
     agent.StartInfo.FileName = "dotnet";
     agent.StartInfo.Arguments = "run";
-    agent.StartInfo.WorkingDirectory = "package";
+    agent.StartInfo.WorkingDirectory = WorkingDirectory;
     agent.Start();
     agent.WaitForExit();
 }

@@ -5,7 +5,8 @@
     "main": "index.js",
     "scripts": {
         "updateproto": "npm uninstall @openiap/proto && npm --save-dev i openiap/proto",
-        "generate": "mkdir -p src/proto && protoc -I=./proto -I./proto --grpc_opt=lite_client,no_server --csharp_out=./src/proto proto/base.proto proto/ace.proto proto/querys.proto proto/queues.proto proto/watch.proto proto/workitems.proto"
+        "generate": "mkdir -p src/proto && protoc -I=./proto -I./proto --grpc_opt=lite_client,no_server --csharp_out=./src/proto proto/base.proto proto/ace.proto proto/querys.proto proto/queues.proto proto/watch.proto proto/workitems.proto",
+        "updateapi": "npm uninstall @openiap/nodeapi && npm i @openiap/nodeapi"
     },
     "repository": {
         "type": "git",
@@ -20,5 +21,10 @@
     "homepage": "https://github.com/openiap/pyapi#readme",
     "devDependencies": {
         "@openiap/proto": "github:openiap/proto"
+    },
+    "openiap": {
+        "language": "dotnet",
+        "daemon": true,
+        "chromium": false
     }
 }

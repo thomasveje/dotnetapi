@@ -35,6 +35,7 @@ public class openiap {
     public User ?user { get; internal set; } = null;
     public string jwt { get; internal set; } = "";
     public CancellationTokenSource ?cts { get; internal set; } = null;
+    public Dictionary<string, System.IO.Stream> Streams = new Dictionary<string, System.IO.Stream>();
     internal ConcurrentQueue<Envelope> sendqueue = new ConcurrentQueue<Envelope>();
 
     public async Task Ping()
@@ -101,9 +102,12 @@ public class openiap {
             s = Newtonsoft.Json.JsonConvert.SerializeObject(orderby);
         }
         var q = query == null ? "{}" : Newtonsoft.Json.Linq.JObject.FromObject(query).ToString();
-        var p = projection == null ? null : Newtonsoft.Json.Linq.JObject.FromObject(projection).ToString();
-        var any = Any.Pack(new QueryRequest() { Collectionname = collectionname, Query = q, Projection = p, Top = top, Skip = skip, 
-        Orderby = s, Queryas = queryas },
+        var qr = new QueryRequest() { Collectionname = collectionname, Query = q, Top = top, Skip = skip, 
+        Orderby = s, Queryas = queryas };
+        if(projection != null) {
+            qr.Projection = Newtonsoft.Json.Linq.JObject.FromObject(projection).ToString();
+        }
+        var any = Any.Pack(qr ,
             QueryRequest.Descriptor.FullName);
         var envelope = new Envelope() { Command = "query", Data = any };
         var rpcresult = await protowrap.RPC(this, envelope);
@@ -353,5 +357,31 @@ public class openiap {
         var envelope = new Envelope() { Command = "deleteworkitem", Data = any };
         var rpcresult = await protowrap.RPC(this, envelope);
     }
-    
+    public async Task<string> DownloadFile(string id) {
+        var pwir = new DownloadRequest() { Id = id };
+        var any = Any.Pack(pwir, DownloadRequest.Descriptor.FullName);
+        var envelope = new Envelope() { Command = "download", Data = any };
+        var rid = Guid.NewGuid().ToString().Substring(0, 8);
+
+        var filename = System.IO.Path.GetTempFileName();
+        Envelope rpcresult;
+        using (var inFileSteam = new FileStream(filename, FileMode.Create, FileAccess.Write, FileShare.None, 4096, true))
+        {
+            protowrap.SetStream(this, rid, inFileSteam);
+            rpcresult = await protowrap.RPC(this, rid, envelope);
+        }
+        try
+        {
+            var reply = rpcresult.Data.Unpack<DownloadResponse>();
+            System.IO.File.Copy(filename, reply.Filename, true);
+            return reply.Filename;
+        }
+        catch (System.Exception)
+        {
+        }
+            var reply2 = rpcresult.Data.Unpack<EndStream>();
+            return "";
+            // System.IO.File.Copy(filename, reply.Filename, true);
+            // return reply.Filename;
+    }
 }

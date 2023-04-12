@@ -28,4 +28,10 @@
   </ItemGroup>
 <ItemGroup>
 </ItemGroup>
+
+<PropertyGroup>
+  <DefaultItemExcludes>$(DefaultItemExcludes);package\**\*</DefaultItemExcludes>
+</PropertyGroup>
+
 </Project>
+
