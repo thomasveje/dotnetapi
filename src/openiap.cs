@@ -104,9 +104,11 @@ public class openiap {
         var q = query == null ? "{}" : Newtonsoft.Json.Linq.JObject.FromObject(query).ToString();
         var qr = new QueryRequest() { Collectionname = collectionname, Query = q, Top = top, Skip = skip, 
         Orderby = s, Queryas = queryas };
-        if(projection != null) {
-            qr.Projection = Newtonsoft.Json.Linq.JObject.FromObject(projection).ToString();
-        }
+        if (projection == null)
+        {
+            projection = new { };
+        }        
+        qr.Projection = Newtonsoft.Json.Linq.JObject.FromObject(projection).ToString();
         var any = Any.Pack(qr ,
             QueryRequest.Descriptor.FullName);
         var envelope = new Envelope() { Command = "query", Data = any };
