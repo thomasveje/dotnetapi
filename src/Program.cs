@@ -68,13 +68,13 @@ async Task ConsoleHandler() {
             string ?line = Console.ReadLine();
             if(line == null) line = "";
             if(line == "p") {
-                var files = new string[]{ "/home/allan/Pictures/allan.png" };
+                var files = new FileInfo[]{ new FileInfo("/home/allan/Pictures/allan.png") };
                 var result = await client.PushWorkitem("q2", new { test = "test" }, files);
                 Console.WriteLine("Pushed workitem with id " + result.Id);
 
                 var wi = await client.PopWorkitem("q2");
                 Console.WriteLine("Poped workitem with id " + wi.Id);
-                files = new string[]{ "/home/allan/Pictures/allan2.png" };
+                files = new FileInfo[]{ new FileInfo("/home/allan/Pictures/allan2.png") };
                 wi.State = "successful";
                 await client.UpdateWorkitem(wi, new { test2 = "test2" }, files);
                 Console.WriteLine("Updated workitem with id " + wi.Id);

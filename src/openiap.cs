@@ -280,16 +280,20 @@ public class openiap {
         if(replyqueue == "") replyqueue = reply.Queuename;
         return reply.Queuename;
     }
-    public async Task<Workitem> PushWorkitem(string wiq, dynamic payload, string[] ?addfiles  = null, Workitem ?wi = null) {
+    public async Task<Workitem> PushWorkitem(string wiq, dynamic payload, FileInfo[] ?addfiles  = null, Workitem ?wi = null) {
         if(wi == null) wi = new Workitem();
-        if(addfiles == null) addfiles = new string[0];
+        if(addfiles == null) addfiles = new FileInfo[0];
+
         foreach(var f in addfiles) {
-            var exists = wi.Files.Where(x => x.Filename == f).FirstOrDefault();
+            var exists = wi.Files.Where(x => x.Filename == f.Name).FirstOrDefault();
             if(exists == null) {
-                wi.Files.Add(new WorkitemFile() { Filename = f });
+                var newWif = new WorkitemFile() { Filename = f.Name };
+                newWif.File = Google.Protobuf.ByteString.CopyFrom(await File.ReadAllBytesAsync(f.FullName));
+                wi.Files.Add(newWif);
             } else {
-                exists.File = Google.Protobuf.ByteString.CopyFrom(await File.ReadAllBytesAsync(f));
+                exists.File = Google.Protobuf.ByteString.CopyFrom(await File.ReadAllBytesAsync(f.FullName));
             }
+
         }
         foreach(var wif in wi.Files) {
             if(wif.File.Length == 0 && wif.Filename != "") {
@@ -316,7 +320,7 @@ public class openiap {
         var reply = rpcresult.Data.Unpack<PushWorkitemResponse>();
         return reply.Workitem;
     }
-    public async Task<Workitem> PopWorkitem(string wiq, bool includefiles = true ) {
+    public async Task<Workitem> PopWorkitem(string wiq, bool includefiles = true, DirectoryInfo? savefilesdirectory = null) {
         var pwir = new PopWorkitemRequest() { Wiq = wiq, Includefiles = includefiles, Compressed = false };
         var any = Any.Pack(pwir,
             PopWorkitemRequest.Descriptor.FullName);
@@ -326,22 +330,29 @@ public class openiap {
         if(reply.Workitem != null && reply.Workitem.Files != null) {
             foreach(var f in reply.Workitem.Files) {
                 if(f.File.Length > 0) {
-                    System.IO.File.WriteAllBytes(f.Filename, f.File.ToByteArray());
+                    if (savefilesdirectory == null)
+                    {
+                        System.IO.File.WriteAllBytes(f.Filename, f.File.ToByteArray());
+                    }
+                    else
+                    {
+                        System.IO.File.WriteAllBytes(System.IO.Path.Combine(savefilesdirectory.FullName, f.Filename), f.File.ToByteArray());
+                    }
                 }
             }
         }
         return reply.Workitem;
     }
-    public async Task<Workitem> UpdateWorkitem(Workitem wi, dynamic ?payload = null, string[] ?addfiles = null) {
-        if(addfiles == null) addfiles = new string[0];
+    public async Task<Workitem> UpdateWorkitem(Workitem wi, dynamic ?payload = null, FileInfo[] ?addfiles = null) {
+        if(addfiles == null) addfiles = new FileInfo[0];
         if(payload != null) {
             wi.Payload = Newtonsoft.Json.JsonConvert.SerializeObject(payload);
         }
         var pwir = new UpdateWorkitemRequest() { Workitem = wi };
         foreach(var f in addfiles) {
             pwir.Files.Add(new WorkitemFile() { 
-                Filename = f,
-                File = Google.Protobuf.ByteString.CopyFrom(await File.ReadAllBytesAsync(f))
+                Filename = f.Name,
+                File = Google.Protobuf.ByteString.CopyFrom(await File.ReadAllBytesAsync(f.FullName))
                 });
         }
         foreach(var f in wi.Files) {

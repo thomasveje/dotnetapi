@@ -7,3 +7,6 @@ test.txt
 package
 /.vscode
 /proto
+/.vs/dotnetapi/config/applicationhost.config
+/.vs/dotnetapi/FileContentIndex
+/.vs/dotnetapi/v17
