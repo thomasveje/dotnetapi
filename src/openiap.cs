@@ -356,7 +356,10 @@ public class openiap {
                 });
         }
         foreach(var f in wi.Files) {
-            f.File = Google.Protobuf.ByteString.CopyFrom();
+            if (Google.Protobuf.ByteString.CopyFrom() is Google.Protobuf.ByteString bs && bs.Length > 0)
+            {
+                f.File = bs;
+            }
         }
         var any = Any.Pack(pwir, UpdateWorkitemRequest.Descriptor.FullName);
         var envelope = new Envelope() { Command = "updateworkitem", Data = any };
